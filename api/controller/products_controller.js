@@ -1,94 +1,116 @@
-const products = require("../../products.json");
+const { param } = require("../routes/products_route");
 
 // GET all products
-const getProductAll = (req, res) => {
-    res.status(200).json(products);
+const getProductAll = async (req, res) => {
+    await client.connect();
+    const products = await client.db('dev_init').collection('products').find({}).toArray();
+    await client.close();
+    res.status(200).send(products);
 };
 
 // GET a single product by ID
-const getProductbyID = (req, res) => {
-    const product = products.find(object => object.id === parseInt(req.params.id));
-    if (!product) return res.status(404).send('Product not found');
-    res.status(200).json(product);
+const getProductbyID = async (req, res) => {
+    const id = parseInt(req.params.id);
+    await client.connect();
+    const product = await client.db('dev_init').collection('products').findOne({"id": id});
+    await client.close();
+    if(!product) {
+        res.status(404).send({
+            "status": "not_found",
+            "product": product
+        });
+    } else {
+        res.status(200).send({
+            "status": "ok",
+            "product": product
+        });
+    }
 };
 
 // POST a new product
-const addProduct = (req, res) => {
-    let body = {
-        name : req.body.name,
-        category : req.body.category,
-        price : req.body.price,
-        stock : req.body.stock
-    };
+const addProduct = async (req, res) => {
+    let product = req.body;
 
-    if(!body.price){
+    if(!product.id){
+        return res.status(400).send("Please fill product id");
+    } else if(isNaN(parseInt(product.id))){
+        return res.status(400).send("ID must be number");
+    } 
+    if(!product.price){
         return res.status(400).send("Please fill product price");
-    } else if(isNaN(parseInt(body.price))){
+    } else if(isNaN(parseInt(product.price))){
         return res.status(400).send("Price must be number");
     } 
-    if(!body.stock){
+    if(!product.stock){
         return res.status(400).send("Please fill product stock");
-    } else if(isNaN(parseInt(body.stock))){
+    } else if(isNaN(parseInt(product.stock))){
         return res.status(400).send("Stock must be number");
     } 
-    if(!body.name){
+    if(!product.name){
         return res.status(400).send("Please fill product name");
     }
-    if(!body.category){
+    if(!product.category){
         return res.status(400).send("Please fill product category");
     }
 
-    const newProduct = {
-        id: products.length + 1,
-        name: req.body.name,
-        category: req.body.category,
-        price: req.body.price,
-        stock: req.body.stock
-    };
-    products.push(newProduct);
-    res.status(201).json(newProduct);
+    await client.connect();
+    await client.db('dev_init').collection('products').insertOne({
+        id: parseInt(product.id),
+        name: product.name,
+        category: product.category,
+        price: product.price,
+        stock: product.stock,
+    });
+    await client.close();
+    res.status(201).send({
+        "status": "ok",
+        "message": "Product with ID = "+product.id+" is created",
+        "product": product
+    });
 };
 
 //PUT edit product
-const editProdoct = (req, res) => {
-    const product = products.find(object => object.id === parseInt(req.params.id));
-    if (!product) return res.status(404).send('Product not found');
-
-    let body = {
-        name : req.body.name,
-        category : req.body.category,
-        price : req.body.price,
-        stock : req.body.stock
-    };
-
-    if(body.name) {
-        product.name = req.body.name;
+const editProdoct = async (req, res) => {
+    const product = req.body;
+    const id = parseInt(product.id);
+    await client.connect();
+    const findProduct = await client.db('dev_init').collection('products').findOne({"id": id});
+    if (!findProduct) {
+        await client.close();
+        res.status(404).send('Product not found');
+    } else {
+        await client.db('dev_init').collection('products').updateOne({'id': id}, {"$set": {
+            id: parseInt(product.id),
+            name: product.name,
+            category: product.category,
+            price: product.price,
+            stock: product.stock,
+        }});
+        await client.close();
+        res.status(200).send({
+        "status": "ok",
+        "message": "Product with ID = "+id+" is updated",
+        "product": product
+        });
     }
-    if(body.category) {
-        product.category = req.body.category;
-    }
-    if(body.price) {
-        if(isNaN(parseInt(body.price))){
-            return res.status(400).send("Price must be number");
-        } 
-        product.price = req.body.price;
-    }
-    if(body.stock) {
-        if(isNaN(parseInt(body.stock))){
-            return res.status(400).send("Stock must be number");
-        }
-        product.stock = req.body.stock;
-    }
-    res.status(200).json(product);
 };
 
 //DELETE delete product
-const deleteProduct = (req, res) => {
-    const productIndex = products.findIndex(object => object.id === parseInt(req.params.id));
-    if (productIndex === -1) return res.status(404).send('Product not found');
-    const productDelete = products.find(object => object.id === parseInt(req.params.id));
-    products.splice(productIndex, 1);
-    res.status(200).send(`Delete product name ${productDelete.name} successfully.`);
+const deleteProduct = async (req, res) => {
+    const id = parseInt(req.params.id);
+    await client.connect();
+    const findProduct = await client.db('dev_init').collection('products').findOne({"id": id});
+    if (!findProduct) {
+        await client.close();
+        res.status(404).send('Product not found');
+    } else {
+        await client.db('dev_init').collection('products').deleteOne({'id': id});
+        await client.close();
+        res.status(200).send({
+            "status": "ok",
+            "message": "Product with ID = "+id+" is deleted"
+        });
+    }
 };
 
 module.exports = { getProductAll, getProductbyID, addProduct, editProdoct, deleteProduct };
