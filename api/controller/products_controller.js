@@ -1,4 +1,4 @@
-const { param } = require("../routes/products_route");
+const client = require('../../db');
 
 // GET all products
 const getProductAll = async (req, res) => {
@@ -70,7 +70,7 @@ const addProduct = async (req, res) => {
 };
 
 //PUT edit product
-const editProdoct = async (req, res) => {
+const editProduct = async (req, res) => {
     const product = req.body;
     const id = parseInt(product.id);
     await client.connect();
@@ -113,4 +113,4 @@ const deleteProduct = async (req, res) => {
     }
 };
 
-module.exports = { getProductAll, getProductbyID, addProduct, editProdoct, deleteProduct };
+module.exports = { getProductAll, getProductbyID, addProduct, editProduct, deleteProduct };

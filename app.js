@@ -2,9 +2,6 @@ const express = require('express');
 const cors = require('cors');
 const app = express();
 const port = 9000;
-const { MongoClient } = require("mongodb");
-const uri = 'mongodb://myUserAdmin:myUserAdmin@127.0.0.1:27017';
-global.client = new MongoClient(uri);
 
 // Middleware for logging
 app.use((req, res, next) => {
